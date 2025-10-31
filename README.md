@@ -6,7 +6,7 @@ The backend is a wrapper that, on startup, runs a C++ program to generate .csv d
 
 This project is deployed entirely using Terraform.
 
-Great guide for how to structure a Terraform project can be found [here.](https://git-scm.com/install/windows)
+Great guide for how to structure a Terraform project can be found [here.](https://spacelift.io/blog/terraform-files)
 
 ## Architecture
 
@@ -111,13 +111,13 @@ Test:
 
 Terraform will output a backend_url and frontend_url.
 
-Go to frontend.html and update the API_URL constant at the top of the <script> tag to the backend_url.
+Go to bs_project.html and update the API_URL constant at the top of the <script> tag to the backend_url.
 
 Run terraform apply one last time. Terraform will detect the change to frontend.html (via its etag) and re-upload it to S3.
 
 Open the frontend_url in your browser.
 
-Destroying the Infrastructure
+### Destroying the Infrastructure
 
 To tear down all created resources and avoid further charges:
 
