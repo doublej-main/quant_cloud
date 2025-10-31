@@ -1,4 +1,4 @@
-Black-Scholes Greek Validator (AWS)
+# Black-Scholes Greek Validator (AWS)
 
 This project implements a web application to display Black-Scholes Greek validation results. It consists of a static frontend (hosted on AWS S3) and a containerized backend (hosted on AWS App Runner).
 
@@ -6,15 +6,15 @@ The backend is a wrapper that, on startup, runs a C++ program to generate .csv d
 
 This project is deployed entirely using Terraform.
 
-Architecture
+## Architecture
 
-Frontend: A static HTML, Tailwind CSS, and JavaScript file.
+* **Frontend: A static HTML, Tailwind CSS, and JavaScript file.**
 
-Hosted on AWS S3 (configured for static website hosting).
+* **Hosted on AWS S3 (configured for static website hosting).**
 
-Backend: A Python FastAPI application, containerized with Docker.
+* **Backend: A Python FastAPI application, containerized with Docker.**
 
-Hosted on AWS App Runner (serverless).
+* **Hosted on AWS App Runner (serverless).**
 
 The container build includes g++, make, Python, the C++ source (main.cpp, bs_greeks.hpp), and the Python plotter (script/plot_results.py).
 
@@ -24,29 +24,28 @@ Container Registry: AWS ECR (Elastic Container Registry) stores the backend Dock
 
 IaC: Terraform provisions all required cloud resources and permissions.
 
-Prerequisites
+## Prerequisites
 
-AWS Account: An AWS account with billing enabled.
+* AWS Account: An AWS account with billing enabled.
 
-AWS CLI: The AWS Command Line Interface.
+* AWS CLI: The AWS Command Line Interface.
 
-Terraform: The Infrastructure as Code tool.
+* Terraform: The Infrastructure as Code tool.
 
-Docker: The containerization platform.
+* Docker: The containerization platform.
 
-C++ Code: You must have your real bs_greeks.hpp file. A mock file is provided so the project can build, but it will not produce correct calculations.
+* C++ Code: You must have your real bs_greeks.hpp file. A mock file is provided so the project can build, but it will not produce correct calculations.
 
-Setup & Authentication
+## Setup & Authentication
 
 Configure AWS CLI:
-
+```bash
 aws configure
 
+# (Enter your
+# AWS Access Key ID, Secret Access Key, and default region).
 
-(Enter your
-AWS Access Key ID, Secret Access Key, and default region).
-
-Place Your Code:
+# Place Your Code:
 
 Deployment Steps
 
