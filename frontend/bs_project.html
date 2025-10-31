@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Black-Scholes Greek Validator</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Simple loading spinner */
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #09f;
+            animation: spin 1s ease infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans leading-normal tracking-normal">
+
+    <div class="container mx-auto max-w-5xl p-5">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Black-Scholes Greek Validation Results</h1>
+
+        <!-- Loading State -->
+        <div id="loading-state" class="flex flex-col items-center justify-center p-10 bg-white rounded-lg shadow-lg">
+            <div class="spinner mb-4"></div>
+            <p class="text-gray-600">Loading results from backend...</p>
+        </div>
+
+        <!-- Error Message -->
+        <div id="error-message" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative hidden" role="alert">
+            <strong class="font-bold">Error!</strong>
+            <span class="block sm:inline" id="error-text"></span>
+        </div>
+
+        <!-- Results Container -->
+        <div id="results-container" class="hidden space-y-8">
+            <!-- Scenarios will be injected here by JavaScript -->
+        </div>
+
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        // TODO: Replace this with your *actual* App Runner API URL after deployment
+        const API_URL = 'https://your-apprunner-url.aws-region.awsapprunner.com'; 
+        // For local testing:
+        // const API_URL = 'http://127.0.0.1:8000';
+
+        // --- DOM Elements ---
+        const loadingState = document.getElementById('loading-state');
+        const errorMessage = document.getElementById('error-message');
+        const errorText = document.getElementById('error-text');
+        const resultsContainer = document.getElementById('results-container');
+
+        // --- Main Function ---
+        document.addEventListener('DOMContentLoaded', fetchResults);
+
+        /**
+         * Fetches the list of results from the backend API
+         */
+        async function fetchResults() {
+            try {
+                const response = await fetch(`${API_URL}/api/results`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                
+                // Process and render results
+                renderResults(data);
+                
+                // Hide loading, show results
+                loadingState.classList.add('hidden');
+                resultsContainer.classList.remove('hidden');
+
+            } catch (error) {
+                console.error('Fetch error:', error);
+                showError(`Failed to connect to backend. ${error.message}`);
+                loadingState.classList.add('hidden');
+            }
+        }
+
+        /**
+         * Renders the results onto the page
+         */
+        function renderResults(data) {
+            // Group files by scenario
+            const scenarios = {};
+            data.files.forEach(filename => {
+                let scenarioName = 'Unknown';
+                if (filename.includes('scenario1')) {
+                    scenarioName = 'Scenario 1 (ATM)';
+                } else if (filename.includes('scenario2')) {
+                    scenarioName = 'Scenario 2 (Stress)';
+                }
+                
+                if (!scenarios[scenarioName]) {
+                    scenarios[scenarioName] = { csv: null, plots: [] };
+                }
+
+                if (filename.endsWith('.csv')) {
+                    scenarios[scenarioName].csv = filename;
+                } else if (filename.endsWith('.png')) {
+                    scenarios[scenarioName].plots.push(filename);
+                }
+            });
+
+            // Create HTML for each scenario
+            for (const scenarioName in scenarios) {
+                const scenario = scenarios[scenarioName];
+                const scenarioDiv = document.createElement('div');
+                scenarioDiv.className = 'bg-white p-6 rounded-lg shadow-lg';
+                
+                let plotsHTML = scenario.plots.map(plotFile => {
+                    const plotTitle = plotFile.replace('.png', '').replace(/_/g, ' ');
+                    const fileUrl = `${API_URL}/api/files/${plotFile}`;
+                    return `
+                        <div class="mb-4">
+                            <h3 class="text-lg font-medium text-gray-700 mb-2 capitalize">${plotTitle}</h3>
+                            <img src="${fileUrl}" alt="${plotTitle}" class="w-full border border-gray-200 rounded-md"/>
+                            <a href="${fileUrl}" download="${plotFile}" class="inline-block mt-2 text-sm text-blue-600 hover:underline">Download ${plotFile}</a>
+                        </div>
+                    `;
+                }).join('');
+
+                let csvHTML = '';
+                if (scenario.csv) {
+                    const fileUrl = `${API_URL}/api/files/${scenario.csv}`;
+                    csvHTML = `
+                        <a href="${fileUrl}" download="${scenario.csv}" class="inline-block bg-green-500 text-white font-semibold py-2 px-4 rounded-lg shadow hover:bg-green-600">
+                            Download ${scenario.csv}
+                        </a>
+                    `;
+                }
+
+                scenarioDiv.innerHTML = `
+                    <h2 class="text-2xl font-semibold text-gray-700 mb-4">${scenarioName}</h2>
+                    <div class="mb-4">
+                        ${csvHTML}
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        ${plotsHTML}
+                    </div>
+                `;
+                resultsContainer.appendChild(scenarioDiv);
+            }
+        }
+
+        /**
+         * Shows an error message
+         */
+        function showError(message) {
+            errorText.textContent = message;
+            errorMessage.classList.remove('hidden');
+        }
+
+    </script>
+</body>
+</html>
+
