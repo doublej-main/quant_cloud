@@ -6,6 +6,8 @@ The backend is a wrapper that, on startup, runs a C++ program to generate .csv d
 
 This project is deployed entirely using Terraform.
 
+Great guide for how to structure a Terraform project can be found [here.](https://git-scm.com/install/windows)
+
 ## Architecture
 
 * **Frontend: A static HTML, Tailwind CSS, and JavaScript file.**
@@ -41,30 +43,30 @@ IaC: Terraform provisions all required cloud resources and permissions.
 Configure AWS CLI:
 ```bash
 aws configure
+```
 
-# (Enter your
-# AWS Access Key ID, Secret Access Key, and default region).
+(Enter your AWS Access Key ID, Secret Access Key, and default region).
 
-# Place Your Code:
+Place Your Code:
 
 Deployment Steps
 
 Navigate to the terraform directory:
-
+```bash
 cd terraform
-
+```
 
 Initialize Terraform:
-
+```bash
 terraform init
-
+```
 
 Apply Terraform (First Pass): This creates the ECR repository and S3 bucket.
 
 You will be prompted for the docker_image_url. You can enter a placeholder for now (e.g., temp).
-
+```bash
 terraform apply
-
+```
 
 Note the docker_repository_url from the output.
 
@@ -73,37 +75,37 @@ Build & Push Docker Image:
 Navigate to the backend directory.
 
 Set environment variables for your convenience (replace values):
-
+```bash
 cd ../backend
 export AWS_REGION=us-east-1
 export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 export DOCKER_REPO_URL=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}[.amazonaws.com/bs-validator-backend-repo](https://.amazonaws.com/bs-validator-backend-repo)
-
+```
 
 Authenticate Docker with ECR:
-
+```bash
 aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
-
+```
 
 Build the image:
-
+```bash
 docker build -t $DOCKER_REPO_URL:latest .
-
+```
 
 Push the image:
-
+```bash
 docker push $DOCKER_REPO_URL:latest
-
+```
 
 Apply Terraform (Second Pass):
 
 Navigate back to the terraform directory.
 
 Run terraform apply again. This time, when prompted for docker_image_url, paste the full URL of the image you just pushed (e.g., 123456789012.dkr.ecr.us-east-1.amazonaws.com/bs-validator-backend-repo:latest).
-
+```bash
 cd ../terraform
 terraform apply
-
+```
 
 Test:
 
@@ -124,17 +126,15 @@ Empty S3 Bucket: AWS requires S3 buckets to be empty before deletion. Go to the 
 Empty ECR Repository: Go to the ECR console, find your bs-validator-backend-repo, and delete the image(s) inside it.
 
 Run Terraform Destroy:
-
+```bash
 cd terraform
 terraform destroy
+```
 
-
-Missing Parts & Non-Idealities
-
-Mock bs_greeks.hpp: The provided bs_greeks.hpp is a mock. You must insert your real file for correct calculations.
+## Missing Parts & Non-Idealities
 
 Manual Docker Push: The flow requires a manual docker build and push between two terraform apply runs. This could be automated with an AWS CodePipeline.
 
-Hardcoded API URL: The frontend.html file has a placeholder API_URL that must be manually updated after the first deployment.
+Hardcoded API URL: The bs_project.html file has a placeholder API_URL that must be manually updated after the first deployment.
 
 Startup Inefficiency: The C++ and Python scripts run every time a new container starts. This is simple but inefficient. A better (but more complex) approach would be to run these scripts during the docker build process (using RUN ./run_scripts.sh) and have the CMD only start the uvicorn server.

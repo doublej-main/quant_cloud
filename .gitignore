@@ -1,0 +1,77 @@
+--- Terraform ---
+
+Ignore local Terraform state files
+
+*.tfstate
+.tfstate.
+.terraform.tfstate.lock.info
+
+Ignore the .terraform directory
+
+.terraform/
+
+Ignore local plans
+
+*.tfplan
+
+--- Python ---
+
+Ignore bytecode and cache
+
+pycache/
+*.py[cod]
+
+Ignore virtual environments
+
+venv/
+*.venv/
+env/
+
+--- C/C++ Build Artifacts ---
+
+Ignore object files
+
+*.o
+
+Ignore the executable from your Makefile
+
+(as specified in run_script.sh and Makefile)
+
+bs_validator
+
+--- Generated Data/Plots ---
+
+Ignore any CSVs generated in the root
+
+*.csv
+
+Ignore the plots directory (from bs_plot_results.py)
+
+plots/
+
+Ignore the output directory (if created locally)
+
+output/
+
+--- OS-specific ---
+
+macOS
+
+.DS_Store
+
+Windows
+
+Thumbs.db
+desktop.ini
+
+--- IDEs ---
+
+VS Code
+
+.vscode/
+
+--- AWS ---
+
+Ignore AWS CLI credentials/config
+
+.aws/

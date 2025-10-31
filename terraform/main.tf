@@ -1,18 +1,5 @@
-# --- 1. Provider & General Configuration ---
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-  }
-}
-
-provider "aws" {
-  region = var.region
-}
-
-# --- 2. S3 Bucket (Frontend Hosting) ---
+# main.tf
+# --- S3 Bucket (Frontend Hosting) ---
 resource "aws_s3_bucket" "frontend_bucket" {
   # Bucket names must be globally unique
   bucket = "${var.app_name}-frontend-bucket-${random_id.bucket_suffix.hex}"
@@ -29,11 +16,11 @@ resource "aws_s3_bucket_website_configuration" "frontend_website" {
     suffix = "bs_project.html"
   }
   error_document {
-    key = "frontend.html"
+    key = "bs_project.html"
   }
 }
 
-# --- 3. S3 Public Access Block & Policy ---
+# --- S3 Public Access Block & Policy ---
 resource "aws_s3_bucket_public_access_block" "public_access" {
   bucket = aws_s3_bucket.frontend_bucket.id
 
@@ -61,18 +48,18 @@ resource "aws_s3_bucket_policy" "bucket_policy" {
   depends_on = [aws_s3_bucket_public_access_block.public_access]
 }
 
-# --- 4. Upload Frontend File to S3 ---
+# --- Upload Frontend File to S3 ---
 resource "aws_s3_object" "frontend_html" {
   bucket       = aws_s3_bucket.frontend_bucket.id
-  key          = "frontend.html"
-  source       = "../frontend/frontend.html" # Assumes terraform is run from 'terraform/' dir
+  key          = "bs_project.html"
+  source       = "../frontend/bs_project.html" # Assumes terraform is run from 'terraform/' dir
   content_type = "text/html"
   
   # Force new upload on content change
-  etag = filemd5("../frontend.html")
+  etag = filemd5("../bs_project.html")
 }
 
-# --- 5. ECR Repository (Backend Image) ---
+# --- ECR Repository (Backend Image) ---
 resource "aws_ecr_repository" "backend_repo" {
   name                 = "${var.app_name}-backend-repo"
   image_tag_mutability = "MUTABLE"
@@ -82,7 +69,7 @@ resource "aws_ecr_repository" "backend_repo" {
   }
 }
 
-# --- 6. IAM Role for App Runner ---
+# --- IAM Role for App Runner ---
 resource "aws_iam_role" "apprunner_ecr_role" {
   name = "${var.app_name}-apprunner-ecr-role"
   assume_role_policy = jsonencode({
@@ -104,7 +91,7 @@ resource "aws_iam_role_policy_attachment" "apprunner_ecr_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSAppRunnerServicePolicyForECRAccess"
 }
 
-# --- 7. App Runner Service (Backend) ---
+# --- App Runner Service (Backend) ---
 resource "aws_apprunner_service" "backend_service" {
   service_name = "${var.app_name}-backend-service"
 

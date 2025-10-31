@@ -1,66 +1,73 @@
+import pandas as pd
+import matplotlib.pyplot as plt
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+
+# --- CORS Imports ---
 from fastapi.middleware.cors import CORSMiddleware
-import mimetypes
 
-# --- Configuration ---
-# Use the absolute path based on the Dockerfile WORKDIR
-OUTPUT_DIR = "/quant_cloud/output"
-
-# --- FastAPI App Initialization ---
 app = FastAPI()
 
-# --- CORS Middleware ---
+# --- CORS SECURITY FIX ---
+# This tells the browser that it's safe for your
+# frontend to make requests to this backend.
+
+# You should restrict this in production!
+# For this project, allowing all origins is ok.
+# For a real project, you'd put your S3 URL in origins.
+origins = [
+    "*",  # Allows all origins
+    # "http://your-s3-website-url.s3-website-us-east-1.amazonaws.com" # Example
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins (restrict in production)
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # Allows all methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allows all headers
 )
+# --- END CORS FIX ---
 
-# --- API Endpoints ---
+
+# This is the directory where run_script.sh places the files
+OUTPUT_DIR = "/quant_cloud/output"
+
+# Mount the static directory to serve files
+# This creates a "/files" endpoint
+app.mount("/files", StaticFiles(directory=OUTPUT_DIR), name="files")
 
 @app.get("/")
 def read_root():
+    """
+    Health check endpoint.
+    """
     return {"message": "Black-Scholes Greek Validator API is running."}
 
 @app.get("/api/results")
-async def get_results_manifest():
+def get_results():
     """
-    Scans the output directory and returns a list of available files.
+    API endpoint that lists all available .csv and .png files.
     """
     try:
         files = os.listdir(OUTPUT_DIR)
-        # Filter for only .csv and .png files
-        result_files = [f for f in files if f.endswith('.csv') or f.endswith('.png')]
-        return {"files": result_files}
-    except FileNotFoundError:
-        return JSONResponse(status_code=404, content={"error": f"Output directory not found at {OUTPUT_DIR}. Did the startup script run?"})
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
-
-
-@app.get("/api/files/{filename:path}")
-async def get_file(filename: str):
-    """
-    Serves a specific file from the output directory.
-    """
-    try:
-        file_path = os.path.join(OUTPUT_DIR, filename)
+        csv_files = [f for f in files if f.endswith('.csv')]
+        png_files = [f for f in files if f.endswith('.png')]
         
-        # Basic security: prevent directory traversal
-        if ".." in filename or not os.path.exists(file_path) or not os.path.isfile(file_path):
-            return JSONResponse(status_code=404, content={"error": "File not found"})
-
-        # Guess MIME type
-        mimetype, _ = mimetypes.guess_type(file_path)
-        if mimetype is None:
-            mimetype = "application/octet-stream"
-
-        return FileResponse(file_path, media_type=mimetype, filename=filename)
-    
+        # We prefix with '/files/' because that's our StaticFiles mount point
+        return {
+            "csv": [f"/files/{f}" for f in csv_files],
+            "plots": [f"/files/{f}" for f in png_files]
+        }
     except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
+        raise HTTPException(status_code=500, detail=str(e))
 
+# This allows users to download a specific file
+@app.get("/files/{file_name}")
+def get_file(file_name: str):
+    file_path = os.path.join(OUTPUT_DIR, file_name)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(file_path)
