@@ -117,7 +117,7 @@ Run terraform apply one last time. Terraform will detect the change to frontend.
 
 Open the frontend_url in your browser.
 
-### Destroying the Infrastructure
+## Destroying the Infrastructure
 
 To tear down all created resources and avoid further charges:
 
