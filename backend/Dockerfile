@@ -18,7 +18,7 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 COPY . .
 
 # 6. Make the entrypoint script executable
-RUN chmod +x run_scripts.sh
+RUN chmod +x run_script.sh
 
 # 7. Set the entrypoint to run our script
 # This script will compile, run C++/Python, and then start the API server

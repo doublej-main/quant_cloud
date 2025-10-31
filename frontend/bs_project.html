@@ -91,9 +91,11 @@
          * Renders the results onto the page
          */
         function renderResults(data) {
-            // Group files by scenario
             const scenarios = {};
-            data.files.forEach(filename => {
+            const allFiles = data.csv.concat(data.plots);
+            allFiles.forEach(fullUrlPath => {
+                const filename = fullUrlPath.split('/').pop(); 
+                
                 let scenarioName = 'Unknown';
                 if (filename.includes('scenario1')) {
                     scenarioName = 'Scenario 1 (ATM)';
@@ -106,9 +108,9 @@
                 }
 
                 if (filename.endsWith('.csv')) {
-                    scenarios[scenarioName].csv = filename;
+                    scenarios[scenarioName].csv = fullUrlPath;
                 } else if (filename.endsWith('.png')) {
-                    scenarios[scenarioName].plots.push(filename);
+                    scenarios[scenarioName].plots.push(fullUrlPath);
                 }
             });
 
@@ -120,7 +122,7 @@
                 
                 let plotsHTML = scenario.plots.map(plotFile => {
                     const plotTitle = plotFile.replace('.png', '').replace(/_/g, ' ');
-                    const fileUrl = `${API_URL}/api/files/${plotFile}`;
+                    const fileUrl = `${API_URL}/files/${plotFile}`;
                     return `
                         <div class="mb-4">
                             <h3 class="text-lg font-medium text-gray-700 mb-2 capitalize">${plotTitle}</h3>
@@ -132,7 +134,7 @@
 
                 let csvHTML = '';
                 if (scenario.csv) {
-                    const fileUrl = `${API_URL}/api/files/${scenario.csv}`;
+                    const fileUrl = `${API_URL}/files/${scenario.csv}`;
                     csvHTML = `
                         <a href="${fileUrl}" download="${scenario.csv}" class="inline-block bg-green-500 text-white font-semibold py-2 px-4 rounded-lg shadow hover:bg-green-600">
                             Download ${scenario.csv}

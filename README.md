@@ -18,7 +18,7 @@ Great guide for how to structure a Terraform project can be found [here.](https:
 
 * **Hosted on AWS App Runner (serverless).**
 
-The container build includes g++, make, Python, the C++ source (main.cpp, bs_greeks.hpp), and the Python plotter (script/plot_results.py).
+The container build includes g++, make, Python, the C++ source (main.cpp, bs_greeks.hpp), and the Python plotter (backend/bs_plot_result.py).
 
 On start, a script (run_scripts.sh) compiles and runs the C++/Python logic to generate files, then starts the API server to serve them.
 
@@ -113,7 +113,7 @@ Terraform will output a backend_url and frontend_url.
 
 Go to bs_project.html and update the API_URL constant at the top of the <script> tag to the backend_url.
 
-Run terraform apply one last time. Terraform will detect the change to frontend.html (via its etag) and re-upload it to S3.
+Run terraform apply one last time. Terraform will detect the change to bs_project.html (via its etag) and re-upload it to S3.
 
 Open the frontend_url in your browser.
 
@@ -137,4 +137,4 @@ Manual Docker Push: The flow requires a manual docker build and push between two
 
 Hardcoded API URL: The bs_project.html file has a placeholder API_URL that must be manually updated after the first deployment.
 
-Startup Inefficiency: The C++ and Python scripts run every time a new container starts. This is simple but inefficient. A better (but more complex) approach would be to run these scripts during the docker build process (using RUN ./run_scripts.sh) and have the CMD only start the uvicorn server.
+Startup Inefficiency: The C++ and Python scripts run every time a new container starts. This is simple but inefficient. A better (but more complex) approach would be to run these scripts during the docker build process (using RUN ./run_script.sh) and have the CMD only start the uvicorn server.

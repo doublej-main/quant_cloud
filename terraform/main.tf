@@ -56,7 +56,7 @@ resource "aws_s3_object" "frontend_html" {
   content_type = "text/html"
   
   # Force new upload on content change
-  etag = filemd5("../bs_project.html")
+  etag = filemd5("../frontend/bs_project.html")
 }
 
 # --- ECR Repository (Backend Image) ---
