@@ -5,6 +5,8 @@ Ignore local Terraform state files
 *.tfstate
 .tfstate.
 .terraform.tfstate.lock.info
+.terraform.lock.hcl
+terraform.tfstate.backup
 
 Ignore the .terraform directory
 
