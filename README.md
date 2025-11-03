@@ -36,45 +36,41 @@ IaC: Terraform provisions all required cloud resources and permissions.
 
 * Docker: The containerization platform.
 
-* C++ Code: You must have your real bs_greeks.hpp file. A mock file is provided so the project can build, but it will not produce correct calculations.
-
 ## Setup & Authentication
 
-Configure AWS CLI:
+### Configure AWS CLI:
 ```bash
 aws configure
 ```
 
 (Enter your AWS Access Key ID, Secret Access Key, and default region).
 
-Place Your Code:
+### Deployment Steps
 
-Deployment Steps
-
-Navigate to the terraform directory:
+* Navigate to the terraform directory:
 ```bash
 cd terraform
 ```
 
-Initialize Terraform:
+* Initialize Terraform:
 ```bash
 terraform init
 ```
 
-Apply Terraform (First Pass): This creates the ECR repository and S3 bucket.
+* Apply Terraform (First Pass): This creates the ECR repository and S3 bucket.
 
-You will be prompted for the docker_image_url. You can enter a placeholder for now (e.g., temp).
+* You will be prompted for the docker_image_url. You can enter a placeholder for now (e.g., temp).
 ```bash
 terraform apply
 ```
 
-Note the docker_repository_url from the output.
+* Note the docker_repository_url from the output.
 
-Build & Push Docker Image:
+* Build & Push Docker Image:
 
-Navigate to the backend directory.
+* Navigate to the backend directory.
 
-Set environment variables for your convenience (replace values):
+* Set environment variables for your convenience (replace values):
 ```bash
 cd ../backend
 export AWS_REGION=us-east-1
@@ -82,26 +78,26 @@ export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output tex
 export DOCKER_REPO_URL=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}[.amazonaws.com/bs-validator-backend-repo](https://.amazonaws.com/bs-validator-backend-repo)
 ```
 
-Authenticate Docker with ECR:
+* Authenticate Docker with ECR:
 ```bash
 aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
 ```
 
-Build the image:
+* Build the image:
 ```bash
 docker build -t $DOCKER_REPO_URL:latest .
 ```
 
-Push the image:
+* Push the image:
 ```bash
 docker push $DOCKER_REPO_URL:latest
 ```
 
-Apply Terraform (Second Pass):
+* Apply Terraform (Second Pass):
 
-Navigate back to the terraform directory.
+* Navigate back to the terraform directory.
 
-Run terraform apply again. This time, when prompted for docker_image_url, paste the full URL of the image you just pushed (e.g., 123456789012.dkr.ecr.us-east-1.amazonaws.com/bs-validator-backend-repo:latest).
+* Run terraform apply again. This time, when prompted for docker_image_url, paste the full URL of the image you just pushed (e.g., 123456789012.dkr.ecr.us-east-1.amazonaws.com/bs-validator-backend-repo:latest).
 ```bash
 cd ../terraform
 terraform apply
