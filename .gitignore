@@ -1,21 +1,15 @@
 --- Terraform ---
 
-Ignore local Terraform state files
+# Ignore local Terraform state files in ANY subdirectory
+**/*.tfstate
+**/*.tfstate.backup
 
-*.tfstate
-.tfstate.
-.terraform.tfstate.lock.info
-.terraform.lock.hcl
-terraform.tfstate.backup
-
-Ignore the .terraform directory
-
+# Ignore the .terraform directory
 .terraform/
+.terraform.lock.hcl
 
-Ignore local plans
-
-*.tfplan
-
+# Ignore local plans
+**/*.tfplan
 --- Python ---
 
 Ignore bytecode and cache

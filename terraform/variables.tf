@@ -1,7 +1,7 @@
 variable "region" {
   type        = string
   description = "The AWS region to deploy resources into (e.g., 'us-east-1')."
-  default     = "eu-north-1"
+  default     = "eu-west-1"
 }
 
 variable "app_name" {
