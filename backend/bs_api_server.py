@@ -1,3 +1,18 @@
+"""Backend API server for Black-Scholes Greek Validator.
+This module implements a FastAPI server that serves the results
+of the Black-Scholes Greek validation computations.
+It provides endpoints to list available CSV results and
+plots, as well as to download specific files.
+
+Module Functions
+----------------
+read_root()
+    Health check endpoint.
+get_results()
+    Lists available CSV and PNG files in the output directory.
+get_file(file_name)
+    Downloads a specific file from the output directory.
+"""
 import pandas as pd
 import matplotlib.pyplot as plt
 import os
