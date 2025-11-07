@@ -15,10 +15,17 @@ get_file(file_name)
 """
 import pandas as pd
 import matplotlib.pyplot as plt
+from mangum import Mangum
 import os
+import subprocess
+import logging
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+
+# --- Logging Configuration ---
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 # --- CORS Imports ---
 from fastapi.middleware.cors import CORSMiddleware
@@ -28,24 +35,15 @@ app = FastAPI()
 # --- CORS SECURITY FIX ---
 # This tells the browser that it's safe for your
 # frontend to make requests to this backend.
-
-# You should restrict this in production!
 # For this project, allowing all origins is ok.
-# For a real project, you'd put your S3 URL in origins.
-origins = [
-    "*",  # Allows all origins
-    # "http://your-s3-website-url.s3-website-us-east-1.amazonaws.com" # Example
-]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"], # Allows all origins
     allow_credentials=True,
     allow_methods=["*"],  # Allows all methods (GET, POST, etc.)
     allow_headers=["*"],  # Allows all headers
 )
-# --- END CORS FIX ---
-
 
 # This is the directory where run_script.sh places the files
 OUTPUT_DIR = "/quant_cloud/output"

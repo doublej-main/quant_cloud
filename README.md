@@ -82,7 +82,7 @@ terraform apply \
 cd ../backend
 export AWS_REGION=eu-west-1
 export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-export DOCKER_REPO_URL=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}[.amazonaws.com/bs-validator-backend-repo](https://.amazonaws.com/bs-validator-backend-repo)
+export DOCKER_REPO_URL=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/bs-validator-backend-repo
 ```
 
 * Authenticate Docker with ECR:
