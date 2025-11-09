@@ -36,8 +36,6 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
-# --- THE FILES ARE NOW PRE-BUILT ---
-# The Dockerfile created this directory with all our files.
 OUTPUT_DIR = "/var/task/output"
 
 # --- API Endpoints ---
