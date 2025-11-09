@@ -133,7 +133,7 @@ Run Terraform Destroy:
 cd terraform
 terraform destroy
 ```
-* You will be prompted for the `docker_image.url`, enter it and then when prompted again type `yes` to approve the plan to destroy the resaources.
+* You will be prompted for the `docker_image.url`, enter it and then when prompted again type `yes` to approve the plan to destroy the resources.
 
 * If you wish to also remove the terraform state and config files. Navigate to the project root. And from there:
 ```bash
@@ -151,4 +151,4 @@ terraform destroy
 
 **Hardcoded API URL**: The `frontend/bs_project.html` file has a placeholder `API_URL` that must be manually updated after the first deployment.
 
-* **Efficient Backend**: This architecture is highly efficient. By running the C++/Python scripts during the docker build phase, the Lambda function has an instantaneous "cold start" and only serves static files, making it very fast and cost-effective.
+**Efficient Backend**: This architecture is highly efficient. By running the C++/Python scripts during the docker build phase, the Lambda function has an instantaneous "cold start" and only serves static files, making it very fast and cost-effective.
