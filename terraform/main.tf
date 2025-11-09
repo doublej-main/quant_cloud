@@ -1,7 +1,7 @@
-# main.tf
+# terraform/main.tf
+
 # --- S3 Bucket (Frontend Hosting) ---
 resource "aws_s3_bucket" "frontend_bucket" {
-  # Bucket names must be globally unique
   bucket = "${var.app_name}-frontend-bucket-${random_id.bucket_suffix.hex}"
 }
 
@@ -14,9 +14,6 @@ resource "aws_s3_bucket_website_configuration" "frontend_website" {
 
   index_document {
     suffix = "bs_project.html"
-  }
-  error_document {
-    key = "bs_project.html"
   }
 }
 
@@ -63,70 +60,109 @@ resource "aws_s3_object" "frontend_html" {
 resource "aws_ecr_repository" "backend_repo" {
   name                 = "${var.app_name}-backend-repo"
   image_tag_mutability = "MUTABLE"
-  force_delete         = true
+  force_delete         = true # Auto-deletes images on destroy
 
   image_scanning_configuration {
     scan_on_push = true
   }
 }
 
-# --- IAM Role for App Runner ---
-resource "aws_iam_role" "apprunner_ecr_role" {
-  name = "${var.app_name}-apprunner-ecr-role"
+# --- IAM Role for Lambda ---
+resource "aws_iam_role" "lambda_exec_role" {
+  name = "${var.app_name}-lambda-role"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Principal = {
-          Service = "build.apprunner.amazonaws.com"
-        }
-        Action = "sts:AssumeRole"
-      },
-    ]
+    Statement = [{
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = {
+        Service = "lambda.amazonaws.com"
+      }
+    }]
   })
 }
 
-resource "aws_iam_role_policy_attachment" "apprunner_ecr_policy" {
-  role       = aws_iam_role.apprunner_ecr_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSAppRunnerServicePolicyForECRAccess"
+# Policy for Lambda to write logs to CloudWatch
+resource "aws_iam_role_policy_attachment" "lambda_logs" {
+  role       = aws_iam_role.lambda_exec_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
-# --- App Runner Service (Backend) ---
-resource "aws_apprunner_service" "backend_service" {
-  service_name = "${var.app_name}-backend-service"
-
-  source_configuration {
-    image_repository {
-      image_identifier      = var.docker_image_url
-      image_repository_type = "ECR"
-      image_configuration {
-        port = "8000" # Must match Dockerfile/script port
-      }
-    }
-    authentication_configuration {
-      access_role_arn = aws_iam_role.apprunner_ecr_role.arn
-    }
-  }
-
-  network_configuration {
-    egress_configuration {
-      egress_type = "DEFAULT"
-    }
-    ingress_configuration {
-      is_publicly_accessible = true
-    }
-  }
-
-  health_check_configuration {
-    protocol            = "HTTP"
-    path                = "/" # Check the root endpoint of the FastAPI app
-    interval            = 10
-    timeout             = 5
-    healthy_threshold   = 1
-    unhealthy_threshold = 2
-  }
-
-  depends_on = [aws_ecr_repository.backend_repo]
+# Policy for Lambda to read from ECR
+resource "aws_iam_role_policy_attachment" "lambda_ecr" {
+  role       = aws_iam_role.lambda_exec_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
 }
 
+# --- Lambda Function ---
+resource "aws_lambda_function" "backend_lambda" {
+  # Only create this on the 2nd pass when docker_image_url is not "temp"
+  count = var.docker_image_url == "temp" ? 0 : 1
+
+  function_name = "${var.app_name}-backend-lambda"
+  role          = aws_iam_role.lambda_exec_role.arn
+  package_type  = "Image"
+  image_uri     = var.docker_image_url
+  timeout       = 30
+  memory_size   = 512
+  kms_key_arn   = null
+}
+
+# --- API Gateway (HTTP API) ---
+resource "aws_apigatewayv2_api" "lambda_api" {
+  # Only create this on the 2nd pass
+  count = var.docker_image_url == "temp" ? 0 : 1
+
+  name          = "${var.app_name}-backend-api"
+  protocol_type = "HTTP"
+  
+  # Add CORS configuration for the API
+  cors_configuration {
+    allow_methods = ["*"]
+    allow_origins = ["*"] # Allows all origins
+    allow_headers = ["*"]
+  }
+}
+
+# Integration between API Gateway and Lambda
+resource "aws_apigatewayv2_integration" "lambda_integration" {
+  # Only create this on the 2nd pass
+  count = var.docker_image_url == "temp" ? 0 : 1
+
+  api_id           = aws_apigatewayv2_api.lambda_api[0].id
+  integration_type = "AWS_PROXY"
+  integration_uri  = aws_lambda_function.backend_lambda[0].invoke_arn
+}
+
+# Catch-all route for all requests
+resource "aws_apigatewayv2_route" "api_route" {
+  # Only create this on the 2nd pass
+  count = var.docker_image_url == "temp" ? 0 : 1
+
+  api_id    = aws_apigatewayv2_api.lambda_api[0].id
+  route_key = "$default" # Catches all paths and methods
+  target    = "integrations/${aws_apigatewayv2_integration.lambda_integration[0].id}"
+}
+
+# Live deployment stage
+resource "aws_apigatewayv2_stage" "lambda_stage" {
+  # Only create this on the 2nd pass
+  count = var.docker_image_url == "temp" ? 0 : 1
+
+  api_id      = aws_apigatewayv2_api.lambda_api[0].id
+  name        = "$default"
+  auto_deploy = true
+}
+
+# Permission for API Gateway to invoke the Lambda
+resource "aws_lambda_permission" "api_gateway_permission" {
+  # Only create this on the 2nd pass
+  count = var.docker_image_url == "temp" ? 0 : 1
+
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.backend_lambda[0].function_name
+  principal     = "apigateway.amazonaws.com"
+
+  source_arn = "${aws_apigatewayv2_api.lambda_api[0].execution_arn}/*/*"
+}

@@ -13,30 +13,21 @@ get_results()
 get_file(file_name)
     Downloads a specific file from the output directory.
 """
-import pandas as pd
-import matplotlib.pyplot as plt
-from mangum import Mangum
 import os
-import subprocess
 import logging
+from mangum import Mangum
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 
 # --- Logging Configuration ---
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-# --- CORS Imports ---
-from fastapi.middleware.cors import CORSMiddleware
-
+# --- FastAPI App Definition ---
 app = FastAPI()
 
-# --- CORS SECURITY FIX ---
-# This tells the browser that it's safe for your
-# frontend to make requests to this backend.
-# For this project, allowing all origins is ok.
-
+# --- CORS Middleware ---
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], # Allows all origins
@@ -45,13 +36,11 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
-# This is the directory where run_script.sh places the files
-OUTPUT_DIR = "/quant_cloud/output"
+# --- THE FILES ARE NOW PRE-BUILT ---
+# The Dockerfile created this directory with all our files.
+OUTPUT_DIR = "/var/task/output"
 
-# Mount the static directory to serve files
-# This creates a "/files" endpoint
-app.mount("/files", StaticFiles(directory=OUTPUT_DIR), name="files")
-
+# --- API Endpoints ---
 @app.get("/")
 def read_root():
     """
@@ -69,18 +58,34 @@ def get_results():
         csv_files = [f for f in files if f.endswith('.csv')]
         png_files = [f for f in files if f.endswith('.png')]
         
-        # We prefix with '/files/' because that's our StaticFiles mount point
+        # Return only the filenames. The frontend adds the "/files/" prefix.
         return {
-            "csv": [f"/files/{f}" for f in csv_files],
-            "plots": [f"/files/{f}" for f in png_files]
+            "csv": csv_files,
+            "plots": png_files
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# This allows users to download a specific file
 @app.get("/files/{file_name}")
 def get_file(file_name: str):
-    file_path = os.path.join(OUTPUT_DIR, file_name)
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="File not found")
-    return FileResponse(file_path)
+    """
+    Downloads a specific file from the output directory.
+    """
+    try:
+        if ".." in file_name or file_name.startswith("/"):
+             raise HTTPException(status_code=400, detail="Invalid filename")
+
+        file_path = os.path.join(OUTPUT_DIR, file_name)
+        
+        if not os.path.exists(file_path):
+            logger.error(f"File not found: {file_path}")
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        return FileResponse(file_path)
+    
+    except Exception as e:
+        logger.error(f"Failed to get file {file_name}: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+# --- Mangum Handler ---
+handler = Mangum(app)
